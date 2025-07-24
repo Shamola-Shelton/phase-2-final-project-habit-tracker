@@ -10,6 +10,7 @@
 }
 
 .error {
-  color: red;
+  color: #dc2626;
   text-align: center;
+  font-size: 0.875rem;
 }
