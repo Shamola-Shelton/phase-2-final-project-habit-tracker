@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { useRouter } from 'next/router';
+import { AuthContext } from '../context/AuthContext';
 import NavBar from '../components/NavBar.jsx';
 import HabitList from '../components/HabitList.jsx';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
@@ -7,14 +9,23 @@ import { fetchHabits, createHabit, updateHabit, deleteHabit } from '../utils/api
 import styles from '../styles/Home.module.css';
 
 export default function Home() {
+  const { user } = useContext(AuthContext);
+  const router = useRouter();
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!user) {
+      router.push('/login');
+    }
+  }, [user, router]);
+
   const loadHabits = async () => {
     try {
       setLoading(true);
-      const data = await fetchHabits();
+      const data = await fetchHabits(user?.id);
       const updatedHabits = await Promise.all(
         data.map(async (habit) => {
           try {
@@ -23,7 +34,7 @@ export default function Home() {
             const { streak, totalCompletions, percentWeek } = await res.json();
             return { ...habit, streak, totalCompletions, percentWeek };
           } catch (err) {
-            return habit; // Fallback to habit without progress
+            return habit;
           }
         })
       );
@@ -36,12 +47,14 @@ export default function Home() {
   };
 
   useEffect(() => {
-    loadHabits();
-  }, []);
+    if (user) {
+      loadHabits();
+    }
+  }, [user]);
 
   const handleCreate = async (name) => {
     try {
-      const newHabit = await createHabit(name);
+      const newHabit = await createHabit(name, user?.id);
       setHabits([...habits, { ...newHabit, streak: 0, totalCompletions: 0, percentWeek: 0 }]);
     } catch (err) {
       setError(err.message);
@@ -70,8 +83,11 @@ export default function Home() {
   };
 
   const handleMarkComplete = (id) => handleUpdate(id, 'markComplete', {});
-
   const handleReset = (id) => handleUpdate(id, 'reset', {});
+
+  if (!user) {
+    return null; // Prevent rendering until redirect
+  }
 
   return (
     <div className={styles.container}>

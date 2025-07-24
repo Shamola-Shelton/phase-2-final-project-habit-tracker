@@ -1,103 +1,57 @@
-const fs = require('fs/promises');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-const { calculateStreak } = require('../../utils/dateHelpers.js');
-
-
-const dataPath = path.join(process.cwd(), 'data/habits.json');
-
-async function getHabits() {
-  try {
-    const data = await fs.readFile(dataPath, 'utf8');
-    return JSON.parse(data);
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      await fs.writeFile(dataPath, '[]');
-      return [];
-    }
-    throw err;
-  }
-}
-
-async function saveHabits(habits) {
-  await fs.writeFile(dataPath, JSON.stringify(habits, null, 2));
-}
+import fs from 'fs/promises';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 export default async function handler(req, res) {
-  const { method } = req;
+  const filePath = path.join(process.cwd(), 'data', 'habits.json');
 
-  if (method === 'GET') {
-    try {
-      const habits = await getHabits();
-      res.status(200).json(habits);
-    } catch (err) {
-      res.status(500).json({ error: 'Failed to fetch habits' });
-    }
-  } else if (method === 'POST') {
-    try {
-      const { name } = req.body;
-      if (!name) return res.status(400).json({ error: 'Name required' });
-      const habits = await getHabits();
+  try {
+    const fileData = await fs.readFile(filePath, 'utf8');
+    let habits = JSON.parse(fileData);
+
+    if (req.method === 'GET') {
+      const { userId } = req.query;
+      const userHabits = habits.filter((habit) => habit.userId === userId);
+      res.status(200).json(userHabits);
+    } else if (req.method === 'POST') {
+      const { name, userId } = req.body;
       const newHabit = {
         id: uuidv4(),
         name,
+        userId,
         completedDates: [],
-        streak: 0,
-        totalCompletions: 0,
+        createdAt: new Date().toISOString(),
       };
       habits.push(newHabit);
-      await saveHabits(habits);
+      await fs.writeFile(filePath, JSON.stringify(habits, null, 2));
       res.status(201).json(newHabit);
-    } catch (err) {
-      res.status(500).json({ error: 'Failed to create habit' });
-    }
-  } else if (method === 'PATCH') {
-    try {
-      const { id, action, name, date } = req.body;
-      if (!id || !action) return res.status(400).json({ error: 'Invalid request' });
-      const habits = await getHabits();
-      const index = habits.findIndex((h) => h.id === id);
-      if (index === -1) return res.status(404).json({ error: 'Habit not found' });
-      let habit = habits[index];
-
-      if (action === 'updateName') {
-        if (!name) return res.status(400).json({ error: 'Name required' });
-        habit.name = name;
-      } else if (action === 'markComplete') {
-        const completeDate = date || new Date().toISOString().split('T')[0];
-        if (!habit.completedDates.includes(completeDate)) {
-          habit.completedDates.push(completeDate);
-          habit.completedDates.sort();
-          habit.totalCompletions += 1;
-          habit.streak = calculateStreak(habit.completedDates);
-        }
-      } else if (action === 'reset') {
-        habit.completedDates = [];
-        habit.streak = 0;
-        habit.totalCompletions = 0;
-      } else {
-        return res.status(400).json({ error: 'Invalid action' });
+    } else if (req.method === 'PUT') {
+      const { id, action, data } = req.body;
+      const habitIndex = habits.findIndex((h) => h.id === id);
+      if (habitIndex === -1) {
+        return res.status(404).json({ message: 'Habit not found' });
       }
-
-      await saveHabits(habits);
-      res.status(200).json(habit);
-    } catch (err) {
-      res.status(500).json({ error: 'Failed to update habit' });
+      if (action === 'markComplete') {
+        const today = new Date().toISOString().split('T')[0];
+        if (!habits[habitIndex].completedDates.includes(today)) {
+          habits[habitIndex].completedDates.push(today);
+        }
+      } else if (action === 'updateName') {
+        habits[habitIndex].name = data.name;
+      } else if (action === 'reset') {
+        habits[habitIndex].completedDates = [];
+      }
+      await fs.writeFile(filePath, JSON.stringify(habits, null, 2));
+      res.status(200).json(habits[habitIndex]);
+    } else if (req.method === 'DELETE') {
+      const { id } = req.body;
+      habits = habits.filter((h) => h.id !== id);
+      await fs.writeFile(filePath, JSON.stringify(habits, null, 2));
+      res.status(200).json({ message: 'Habit deleted' });
+    } else {
+      res.status(405).json({ message: 'Method not allowed' });
     }
-  } else if (method === 'DELETE') {
-    try {
-      const { id } = req.query;
-      if (!id) return res.status(400).json({ error: 'ID required' });
-      const habits = await getHabits();
-      const filtered = habits.filter((h) => h.id !== id);
-      if (filtered.length === habits.length) return res.status(404).json({ error: 'Habit not found' });
-      await saveHabits(filtered);
-      res.status(204).end();
-    } catch (err) {
-      res.status(500).json({ error: 'Failed to delete habit' });
-    }
-  } else {
-    res.setHeader('Allow', ['GET', 'POST', 'PATCH', 'DELETE']);
-    res.status(405).end(`Method ${method} Not Allowed`);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
   }
 }
