@@ -1,0 +1,20 @@
+.grid {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.day {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ddd;
+  background-color: #f0f0f0;
+}
+
+.completed {
+  background-color: #4caf50;
+  color: white;
+}

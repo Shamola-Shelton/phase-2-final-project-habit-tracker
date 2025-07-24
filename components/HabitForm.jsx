@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styles from '../styles/HabitForm.module.css';
 
-const HabitForm = ({ onSubmit, initialName = '', buttonText = 'Save' }) => {
+const HabitForm = ({ onSubmit, initialName = '', buttonText }) => {
   const [name, setName] = useState(initialName);
 
   const handleSubmit = (e) => {
@@ -22,7 +22,9 @@ const HabitForm = ({ onSubmit, initialName = '', buttonText = 'Save' }) => {
         className={styles.input}
         required
       />
-      <button type="submit" className={styles.button}>{buttonText}</button>
+      <button type="submit" className={styles.button}>
+        {buttonText}
+      </button>
     </form>
   );
 };

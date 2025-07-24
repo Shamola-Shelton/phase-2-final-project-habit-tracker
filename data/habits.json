@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "id": "385668ee-4cf0-4f27-b9e2-e56682d6d5a6",
+    "name": "Running",
+    "completedDates": [],
+    "streak": 0,
+    "totalCompletions": 0
+  },
+  {
+    "id": "0785772a-23d7-4a98-a3d5-9078ebbedfcf",
+    "name": "Running",
+    "userId": "2",
+    "completedDates": [
+      "2025-07-24"
+    ],
+    "createdAt": "2025-07-24T16:20:31.807Z"
+  }
+]

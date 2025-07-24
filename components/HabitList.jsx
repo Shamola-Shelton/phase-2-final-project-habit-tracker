@@ -1,16 +1,19 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import HabitForm from './HabitForm.jsx';
 import CalendarGrid from './CalendarGrid.jsx';
 import ProgressBar from './ProgressBar.jsx';
+import { AuthContext } from '../context/AuthContext';
 import styles from '../styles/HabitList.module.css';
 
 const HabitList = ({ habits, onCreate, onUpdate, onDelete, onMarkComplete, onReset, loading, error }) => {
+  const { user } = useContext(AuthContext);
+
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error: {error}</p>;
 
   return (
     <div className={styles.container}>
-      <HabitForm onSubmit={onCreate} buttonText="Add Habit" />
+      <HabitForm onSubmit={(name) => onCreate(name, user?.id)} buttonText="Add Habit" />
       <ul className={styles.list}>
         {habits.map((habit) => (
           <li key={habit.id} className={styles.item}>
